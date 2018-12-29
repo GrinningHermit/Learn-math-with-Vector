@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <title>Learning sums with Vector</title>
+
+    <link rel="stylesheet" href="../static/css/jquery-ui.css">
+    <link rel="stylesheet" href="../static/css/jquery.numpad.css">
+
+    <script type=text/javascript>
+        let $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        let sumX = '{{ sum_x }}';
+        let sumY = '{{ sum_y }}';
+
+    </script>
+    <script src="../static/js/jquery-1.12.4.min.js"></script>
+    <script src="../static/js/jquery-ui-1.12.1.min.js"></script>
+    <script src="../static/js/jquery.numpad.js"></script>
+    <script src="../static/js/jquery.ui.touch-punch.min.js"></script>
+    <script src="../static/js/engine.js?q={{ randomID }}"></script>
+</head>
+
+<body>
+    <div id="content">
+        <input id="answer"></input>
+    </div>
+</body>
+
+</html>
