@@ -1,6 +1,7 @@
 import anki_vector
 import random
 import time
+import asyncio
 import logging
 import sys
 import json
@@ -25,6 +26,7 @@ msg = ''
 x = 0
 y = 0
 robot = None
+is_busy = False
 
 @app.route('/')
 def index():
@@ -40,20 +42,21 @@ def index():
 def answer_eval():
     correct_answer = str(x + y)
     answer = json.loads(request.data.decode("utf-8"))
-    msg = 'triggered'
     if answer == correct_answer:
-        msg = 'Yay, correct!'
+        msg = 'Correct!'
     else:
-        msg = 'No, wrong'
+        msg = 'Wrong'
     create_image(msg)
     print(msg)
-    robot_display_img()
+    robot.conn.run_soon(robot_display_img())
+    robot.say_text(msg)
+    return ''
 
 
 def create_image(msg):
     global img
     W, H = (184,96)
-    fnt = ImageFont.truetype('/Library/Fonts/Hind-Bold.ttf', 48)
+    fnt = ImageFont.truetype('../static/fonts/Roboto-Bold.ttf', 48)
     img = Image.new("RGBA",(W,H),color = (0, 0, 0))
     draw = ImageDraw.Draw(img)
     w, h = draw.textsize(msg, font=fnt)
@@ -67,39 +70,31 @@ def create_sum():
     msg = str(x) + ' + ' + str(y)
     return msg
 
-def robot_display_img():
+async def robot_display_img():
     global robot
     if robot != None:
         image_data = img.getdata()
         pixel_bytes = anki_vector.screen.convert_pixels_to_screen_data(image_data, 184, 96)
-        robot.conn.release_control()
-        time.sleep(1)
-        robot.conn.request_control()
-        robot.screen.set_screen_with_image_data(pixel_bytes, 4.0)
+        await robot.screen.set_screen_with_image_data(pixel_bytes, 0.0, 1)
+        await robot.screen.set_screen_with_image_data(pixel_bytes, 4.0, 1)
         time.sleep(5)
-
-
-def robot_connect_prepare():
-    global robot
-    with anki_vector.robot.Robot() as robot:
-        robot.behavior.set_head_angle(degrees(45.0))
-        robot.behavior.set_lift_height(0.0)
-        robot_display_img()
 
 
 def run():
     global robot
 
+    # thread = Thread(target=flask_socket_helpers.run_flask, args=(None, app))
+    # thread.start()
+
     _sum = create_sum()
     create_image(_sum)
 
-    thread = Thread(target=flask_socket_helpers.run_flask, args=(None, app))
-    thread.start()
+    with anki_vector.robot.Robot() as robot:
+        robot.behavior.set_head_angle(degrees(45.0))
+        robot.behavior.set_lift_height(0.0)
+        robot.conn.run_coroutine(robot_display_img())
 
-    robot_connect_prepare()
-
-    while True:
-        pass
+        flask_socket_helpers.run_flask(None, app)
 
 
 if __name__ == '__main__':
