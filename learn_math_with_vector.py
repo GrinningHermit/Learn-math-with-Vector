@@ -25,8 +25,11 @@ app = Flask(__name__)
 msg = ''
 x = 0
 y = 0
+_sum = ''
 robot = None
 is_busy = False
+questions = 1
+current_question = 0
 
 @app.route('/')
 def index():
@@ -40,27 +43,69 @@ def index():
 
 @app.route('/answer', methods=['POST'])
 def answer_eval():
+    global is_busy
+    global _sum
+    global current_question
     correct_answer = str(x + y)
     answer = json.loads(request.data.decode("utf-8"))
     if answer == correct_answer:
         msg = 'Correct!'
+        color = (0, 220, 135)
+        _sum = create_sum()
+        current_question = current_question + 1
     else:
         msg = 'Wrong'
-    create_image(msg)
+        color = (180, 0, 0)
+    create_image(msg, color)
     print(msg)
+    is_busy = False
+    time.sleep(0.4) # make sure any displayed image is removed
     robot.conn.run_soon(robot_display_img())
     robot.say_text(msg)
+    time.sleep(1.5)
+    ask_question(msg)
     return ''
 
 
-def create_image(msg):
+@app.route('/again', methods=['POST'])
+def again():
+    global current_question
+    current_question = 0
+    ask_question(create_sum())
+    return ''
+
+
+def ask_question(msg):
+    global is_busy
+
+    is_busy = False
+    time.sleep(0.4)
+    
+    if current_question >= questions:
+        robot.anim.play_animation('anim_eyecontact_giggle_01_head_angle_20')
+        robot.conn.release_control()
+        # sys.exit()
+        return ''
+
+    create_image(_sum, (255,255,255))
+    robot.conn.run_soon(robot_display_img())
+    robot.say_text(_sum)
+
+
+def create_image(msg, color=(0, 220, 135)):
     global img
+    global questions
+    global current_question
+
+    progress = str(current_question) + '/' + str(questions)
     W, H = (184,96)
-    fnt = ImageFont.truetype('../static/fonts/Roboto-Bold.ttf', 48)
+    fnt1 = ImageFont.truetype('../static/fonts/Roboto-Bold.ttf', 48)
+    fnt2 = ImageFont.truetype('../static/fonts/Roboto-Bold.ttf', 18)
     img = Image.new("RGBA",(W,H),color = (0, 0, 0))
     draw = ImageDraw.Draw(img)
-    w, h = draw.textsize(msg, font=fnt)
-    draw.text(((W-w)/2,(H-h)/2-5), msg, font=fnt, fill=(0, 220, 135))
+    w, h = draw.textsize(msg, font=fnt1)
+    draw.text(((W-w)/2,(H-h)/2-5), msg, font=fnt1, fill=(color))
+    draw.text((5,5), progress, font=fnt2, fill=(255,255,255))
  
 
 def create_sum():
@@ -72,27 +117,32 @@ def create_sum():
 
 async def robot_display_img():
     global robot
+    global is_busy
     if robot != None:
+        is_busy = True
         image_data = img.getdata()
         pixel_bytes = anki_vector.screen.convert_pixels_to_screen_data(image_data, 184, 96)
         await robot.screen.set_screen_with_image_data(pixel_bytes, 0.0, 1)
-        await robot.screen.set_screen_with_image_data(pixel_bytes, 4.0, 1)
-        time.sleep(5)
+        while is_busy:
+            await robot.screen.set_screen_with_image_data(pixel_bytes, 0.1, 1)
 
 
 def run():
     global robot
+    global _sum
 
     # thread = Thread(target=flask_socket_helpers.run_flask, args=(None, app))
     # thread.start()
 
     _sum = create_sum()
-    create_image(_sum)
+    create_image(_sum, (255,255,255))
 
     with anki_vector.robot.Robot() as robot:
+        robot.say_text("I love math, let's play!")
         robot.behavior.set_head_angle(degrees(45.0))
         robot.behavior.set_lift_height(0.0)
         robot.conn.run_coroutine(robot_display_img())
+        robot.say_text(_sum)
 
         flask_socket_helpers.run_flask(None, app)
 
