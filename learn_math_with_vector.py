@@ -28,7 +28,7 @@ y = 0
 _sum = ''
 robot = None
 is_busy = False
-questions = 1
+questions = 3
 current_question = 0
 
 @app.route('/')
@@ -80,7 +80,7 @@ def ask_question(msg):
 
     is_busy = False
     time.sleep(0.4)
-    
+
     if current_question >= questions:
         robot.anim.play_animation('anim_eyecontact_giggle_01_head_angle_20')
         robot.conn.release_control()
