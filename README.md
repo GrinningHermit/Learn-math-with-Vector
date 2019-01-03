@@ -8,6 +8,8 @@ What does it do exactly?
 -
 After you pick a type of math to learn and a range, Vector offers a series of math questions that need to be answered on screen. This can be either the computer from which the program was started or a (mobile) device inside the local network.
 
+This program offers a choice of match training sets (pic 1). Once a choice is made, Vector asks a number of questions (pic 2). The answer can be entered on screen (pic 3). Vector tells you it’s ok or not (pic 4). This repeats ten times with questions within the chosen range and math type, then ends with a discreet celebration.
+
 What do you need to use it?
 -
 1. Vector himself (http://anki.com/vector)
