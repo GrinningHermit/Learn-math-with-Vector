@@ -25,33 +25,42 @@ app = Flask(__name__)
 msg = ''
 x = 0
 y = 0
-_sum = ''
+math_string = ''
 robot = None
 is_busy = False
-questions = 3
+questions = 10
 current_question = 0
+game_type = ''
+game_range = 0
+
 
 @app.route('/')
 def index():
     global x, y
     return render_template(
-        'index.html',
-        sum_x = str(x),
-        sum_y = str(y)
+        'index.html'
     )
 
 
 @app.route('/answer', methods=['POST'])
 def answer_eval():
     global is_busy
-    global _sum
+    global math_string
     global current_question
-    correct_answer = str(x + y)
+    global game_type
+
+    if game_type == '+':
+        correct_answer = str(x + y)
+    elif game_type == '-':
+        correct_answer = str(x - y)
+    elif game_type == '*':
+        correct_answer = str(x * y)
+
     answer = json.loads(request.data.decode("utf-8"))
     if answer == correct_answer:
         msg = 'Correct!'
         color = (0, 220, 135)
-        _sum = create_sum()
+        math_string = create_math_calculation()
         current_question = current_question + 1
     else:
         msg = 'Wrong'
@@ -63,16 +72,70 @@ def answer_eval():
     robot.conn.run_soon(robot_display_img())
     robot.say_text(msg)
     time.sleep(1.5)
-    ask_question(msg)
-    return ''
+    if current_question >= questions:
+        is_busy = False
+        current_question = 0
+        robot_action('finished')
+        return 'done'
+    else: 
+        ask_question(msg)
+        return ''
+
+
+@app.route('/game_start', methods=['POST'])
+def game_start():
+    global robot
+    global math_string
+    global game_type
+    global game_range
+
+    msg = json.loads(request.data.decode("utf-8"))
+    game_type = msg['type']
+    game_range = msg['range']
+    math_string = create_math_calculation()
+    ask_question(math_string)
+    return game_type
 
 
 @app.route('/again', methods=['POST'])
 def again():
     global current_question
     current_question = 0
-    ask_question(create_sum())
+    ask_question(create_math_calculation())
     return ''
+
+
+def robot_finished():
+    print('finished animation triggered')
+    play_list = [
+        'anim_vc_alrighty_01',
+        'anim_eyecontact_giggle_01_head_angle_20',
+        'anim_timer_emote_01',
+        'anim_referencing_giggle_01',
+        'anim_referencing_smile_01'
+    ]
+    play = play_list[random.randint(0, len(play_list) - 1)]
+    print(play)
+    robot.anim.play_animation(play)
+    time.sleep(3)
+    robot.behavior.set_head_angle(degrees(45.0))
+    robot.behavior.set_lift_height(0.0)
+
+
+def robot_started():
+    print('started animation triggered')
+    robot.say_text("I love math, let's play!")
+    robot.behavior.set_head_angle(degrees(45.0))
+    robot.behavior.set_lift_height(0.0)
+
+
+def robot_action(action):
+    global robot
+    if action == 'finished':
+        thread = Thread(target=robot_finished)
+    if action == 'started':
+        thread = Thread(target=robot_started)
+    thread.start()
 
 
 def ask_question(msg):
@@ -80,16 +143,11 @@ def ask_question(msg):
 
     is_busy = False
     time.sleep(0.4)
-
-    if current_question >= questions:
-        robot.anim.play_animation('anim_eyecontact_giggle_01_head_angle_20')
-        robot.conn.release_control()
-        # sys.exit()
-        return ''
-
-    create_image(_sum, (255,255,255))
+    create_image(math_string, (255,255,255))
     robot.conn.run_soon(robot_display_img())
-    robot.say_text(_sum)
+    if game_type == '-':
+        msg = str(x) + ' minus ' + str(y)
+    robot.say_text(msg)
 
 
 def create_image(msg, color=(0, 220, 135)):
@@ -108,11 +166,25 @@ def create_image(msg, color=(0, 220, 135)):
     draw.text((5,5), progress, font=fnt2, fill=(255,255,255))
  
 
-def create_sum():
+def create_math_calculation():
     global x,y
-    x = random.randint(1,10)
-    y = random.randint(1,10)
-    msg = str(x) + ' + ' + str(y)
+    global game_type
+    global game_range
+
+    if game_type == '+':
+        x = random.randint(0, game_range)
+        y_range = game_range - x
+    elif game_type == '-':
+        x = random.randint(1,int(game_range*1.5))
+        if x > game_range:
+            x = x - int(game_range/2)
+        y_range = x
+    elif game_type == '*':
+        x = random.randint(1, game_range)
+        y_range = random.randint(1, game_range)
+    y = random.randint(0, y_range)
+
+    msg = str(x) + ' ' + game_type + ' ' + str(y)
     return msg
 
 async def robot_display_img():
@@ -122,28 +194,16 @@ async def robot_display_img():
         is_busy = True
         image_data = img.getdata()
         pixel_bytes = anki_vector.screen.convert_pixels_to_screen_data(image_data, 184, 96)
-        await robot.screen.set_screen_with_image_data(pixel_bytes, 0.0, 1)
+        robot.screen.set_screen_to_color(anki_vector.color.off, duration_sec=0.0)
         while is_busy:
-            await robot.screen.set_screen_with_image_data(pixel_bytes, 0.1, 1)
+            await robot.screen.set_screen_with_image_data(pixel_bytes, 0.1)
 
 
 def run():
     global robot
-    global _sum
-
-    # thread = Thread(target=flask_socket_helpers.run_flask, args=(None, app))
-    # thread.start()
-
-    _sum = create_sum()
-    create_image(_sum, (255,255,255))
 
     with anki_vector.robot.Robot() as robot:
-        robot.say_text("I love math, let's play!")
-        robot.behavior.set_head_angle(degrees(45.0))
-        robot.behavior.set_lift_height(0.0)
-        robot.conn.run_coroutine(robot_display_img())
-        robot.say_text(_sum)
-
+        robot_action('started')
         flask_socket_helpers.run_flask(None, app)
 
 

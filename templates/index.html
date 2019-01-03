@@ -2,17 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no" />
 
     <title>Learning sums with Vector</title>
 
     <link rel="stylesheet" href="../static/css/jquery-ui.css">
     <link rel="stylesheet" href="../static/css/lmwv.css">
-
-    <!-- <script type=text/javascript>
-        let $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-        let sumX = '{{ sum_x }}';
-        let sumY = '{{ sum_y }}';
-    </script> -->
 
     <script src="../static/js/jquery-1.12.4.min.js"></script>
     <script src="../static/js/jquery-ui-1.12.1.min.js"></script>
@@ -21,11 +16,14 @@
 </head>
 
 <body>
-    <div class="display">
-        <div class="result flex-item">&nbsp;</div>
-        <div class="delete flex-item">X</div>
+    <div id="calculator_pad" class="flex_view">
+        <div class="display">
+            <div class="result flex-item">&nbsp;</div>
+            <div class="delete flex-item">X</div>
+        </div>
+        <div class="numpad"></div>
     </div>
-    <div class="numpad"></div>
+    <div id="menu_overlay" class="flex_view"></div>
 </body>
 
 </html>

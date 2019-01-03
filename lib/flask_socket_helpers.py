@@ -49,7 +49,7 @@ def _delayed_open_web_browser(url, delay, new=0, autoraise=True, specific_browse
     thread.start()
 
 
-def run_flask(socketio, app, host_ip='127.0.0.1', host_port=5000, enable_flask_logging=False,
+def run_flask(socketio, app, host_ip='0.0.0.0', host_port=5000, enable_flask_logging=False,
               open_page=True, open_page_delay=1.0):
     '''
     Run the Flask webserver on specified host and port
