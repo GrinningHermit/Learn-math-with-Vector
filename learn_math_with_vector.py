@@ -147,6 +147,8 @@ def ask_question(msg):
     robot.conn.run_soon(robot_display_img())
     if game_type == '-':
         msg = str(x) + ' minus ' + str(y)
+    else:
+        msg = str(x) + ' ' + game_type + ' ' + str(y)
     robot.say_text(msg)
 
 
